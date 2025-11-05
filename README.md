@@ -1,6 +1,10 @@
 # ESP32S3-7.0inch_ESP32-8048S070-Project
 This is a class schedule project built with ESP32-8048S070's source code
 
+# Library Versions
+LVGL v8.3.11
+
+
 # Board's Documents
 https://github.com/Massmore/7.0inch_ESP32-8048S070
 
@@ -10,3 +14,6 @@ https://github.com/Massmore/7.0inch_ESP32-8048S070
 <img width="266" height="527" alt="image" src="https://github.com/user-attachments/assets/de1e5bbd-3511-4b46-a76e-994b265939c8" />
 <img width="266" height="528" alt="image" src="https://github.com/user-attachments/assets/a55ea0ef-f8f2-49fc-b917-9657c66b6072" />
 <img width="254" height="515" alt="image" src="https://github.com/user-attachments/assets/c25080a1-7118-4edd-a45e-19409f4fc48f" />
+
+# LVGL Font Converter
+https://lvgl.io/tools/fontconverter
