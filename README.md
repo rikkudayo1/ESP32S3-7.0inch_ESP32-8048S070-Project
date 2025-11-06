@@ -17,3 +17,6 @@ https://github.com/Massmore/7.0inch_ESP32-8048S070
 
 # LVGL Font Converter
 https://lvgl.io/tools/fontconverter
+
+# Thai font link
+https://fonts.google.com/noto/specimen/Noto+Sans+Thai
