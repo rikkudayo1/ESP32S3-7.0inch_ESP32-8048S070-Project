@@ -39,7 +39,8 @@ Arduino_RGB_Display *gfx = new Arduino_RGB_Display(800, 480, rgbpanel);
 
 // ===================== LVGL Buffer =====================
 static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf1[800 * 40];
+static lv_color_t *buf1;
+static lv_color_t *buf2;
 static lv_disp_drv_t disp_drv;
 
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
@@ -51,8 +52,8 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
 }
 
 // ===================== WiFi & NTP =====================
-const char *ssid = "your wifi ssid";
-const char *password = "password";
+const char *ssid = "Jurapipat_2.4G";
+const char *password = "168020130";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600, 60000);
@@ -67,8 +68,8 @@ const char *thaiDays[] = {
 
 const char *periodTimes[9] = {
     "08:30 - 09:20", "09:20 - 10:10", "10:10 - 11:00",
-    "11:00 - 11:50", "11:50 - 12:40", "13:30 - 14:20",
-    "14:20 - 15:10", "15:10 - 16:00", "16:00 - 16:50"};
+    "11:00 - 11:50", "11:50 - 12:40", "12:40 - 13:30",
+    "13:30 - 14:20", "14:20 - 15:10", "15:10 - 16:00"};
 
 struct Subject
 {
@@ -81,7 +82,7 @@ Subject schedule[7][9] = {
     {{"คณิต","ครูเอก"},{"วิทย์","ครูบี"},{"อังกฤษ","ครูซี"},{"ศิลปะ","ครูดี"},{"คอม","ครูเอฟ"},{"ไทย","ครูจี"},{"สังคม","ครูเอช"},{"พลศึกษา","ครูไอ"},{"ดนตรี","ครูเจ"}},
     {{"ไทย","ครูเอ"},{"ประวัติ","ครูบี"},{"คอม","ครูซี"},{"สุขศึกษา","ครูดี"},{"วิทย์","ครูอี"},{"ศิลปะ","ครูจี"},{"อังกฤษ","ครูแฮ"},{"คณิต","ครูเค"},{"สังคม","ครูดี"}},
     {{"วิทย์","ครูบี"},{"คณิต","ครูเอ"},{"อังกฤษ","ครูซี"},{"ดนตรี","ครูดี"},{"พลศึกษา","ครูอี"},{"ศิลปะ","ครูจี"},{"คอม","ครูเอช"},{"ไทย","ครูไอ"},{"สังคม","ครูเจ"}},
-    {{"ศิลปะ","ครูเอ"},{"ไทย","ครูบี"},{"วิทย์","ครูซี"},{"พลศึกษา","ครูดี"},{"คณิต","ครูอี"},{"อังกฤษ","ครูจี"},{"สุขศึกษา","ครูเอช"},{"คอม","ครูไอ"},{"ดนตรี","ครูเจ"}},
+    {{"คณิตศาสตร์","ครูอากร"},{"สังคมศีกษา","ครูลักษณา"},{"IS","ครูณัษฐพง"},{"IS","ครูณัษฐพง"},{"พักกลางวัน",""},{"ฟิสิกส์","ครูสุวะนิด"},{"ฟิสิกส์","ครูสุวะนิด"},{"ภาษาไทย","ครูวิทยานัน"},{"ไม่มีเรียน",""}},
     {{"คณิต","ครูเอ"},{"สังคม","ครูบี"},{"อังกฤษ","ครูซี"},{"คอม","ครูดี"},{"พลศึกษา","ครูอี"},{"ไทย","ครูจี"},{"วิทย์","ครูเอช"},{"ศิลปะ","ครูไอ"},{"ดนตรี","ครูเจ"}},
     {{"ไม่มีเรียน",""},{"ไม่มีเรียน",""},{"ไม่มีเรียน",""},{"",""},{"",""},{"",""},{"",""},{"",""},{"",""}}
 };
@@ -111,14 +112,34 @@ int timeToMinutes(const char *t)
 
 int getCurrentPeriod()
 {
-  int now = timeClient.getHours() * 60 + timeClient.getMinutes();
+  static int cachedHour = -1;
+  static int cachedMinute = -1;
+  static int cachedPeriod = -1;
+  
+  int currentHour = timeClient.getHours();
+  int currentMinute = timeClient.getMinutes();
+  
+  // Return cached value if time hasn't changed
+  if (currentHour == cachedHour && currentMinute == cachedMinute)
+  {
+    return cachedPeriod;
+  }
+  
+  cachedHour = currentHour;
+  cachedMinute = currentMinute;
+  
+  int now = currentHour * 60 + currentMinute;
   for (int i = 0; i < 9; i++)
   {
     int start = timeToMinutes(periodTimes[i]);
     int end = timeToMinutes(periodTimes[i] + 8);
     if (now >= start && now < end)
+    {
+      cachedPeriod = i;
       return i;
+    }
   }
+  cachedPeriod = -1;
   return -1;
 }
 
@@ -134,6 +155,8 @@ void setup_lvgl_ui(int day)
   lv_obj_set_style_bg_color(scr, dayColors[day], LV_PART_MAIN);
   lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
 
+  lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+
   lv_obj_t *header = lv_label_create(scr);
   lv_obj_add_style(header, &thai_style, LV_PART_MAIN);
   lv_label_set_text_fmt(header, "ตารางเรียน %s ห้อง xxx", thaiDays[day]);
@@ -141,6 +164,8 @@ void setup_lvgl_ui(int day)
 
   label_time = lv_label_create(scr);
   lv_obj_add_style(label_time, &thai_style, LV_PART_MAIN);
+  lv_obj_set_width(label_time, 150);  // Fixed width
+  lv_label_set_text(label_time, "00:00");  // Initial text
   lv_obj_align(label_time, LV_ALIGN_TOP_RIGHT, -30, 10);
 
   int y = 70;
@@ -168,10 +193,17 @@ void setup_lvgl_ui(int day)
   }
 }
 
+int currentDay = -1;
 // ===================== Setup =====================
 void setup()
 {
   Serial.begin(115200);
+
+  Serial.print("PSRAM found: ");
+  Serial.println(psramFound());
+  Serial.print("PSRAM size: ");
+  Serial.println(ESP.getPsramSize());
+
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
 
@@ -180,7 +212,14 @@ void setup()
 
   lv_init();
 
-  lv_disp_draw_buf_init(&draw_buf, buf1, NULL, 800 * 40);
+  buf1 = (lv_color_t *)ps_malloc(sizeof(lv_color_t) * 800 * 240);
+  buf2 = (lv_color_t *)ps_malloc(sizeof(lv_color_t) * 800 * 240);
+
+  if (!buf1 || !buf2) {
+    Serial.println("❌ PSRAM allocation failed!");
+    while (1);
+  }
+  lv_disp_draw_buf_init(&draw_buf, buf1, buf2, 800 * 240);
   lv_disp_drv_init(&disp_drv);
   disp_drv.hor_res = 800;
   disp_drv.ver_res = 480;
@@ -198,8 +237,13 @@ void setup()
   {
     delay(200);
   }
-  int d = timeClient.getDay();
-  setup_lvgl_ui(d);
+  currentDay = timeClient.getDay();
+  setup_lvgl_ui(currentDay);
+
+  // Initialize time display to avoid first update
+  lv_label_set_text_fmt(label_time, "%02d:%02d",
+                        timeClient.getHours(),
+                        timeClient.getMinutes());
 }
 
 // ===================== Loop =====================
@@ -207,41 +251,86 @@ void loop()
 {
   static uint32_t lastTick = 0;
   static uint32_t lastUpdate = 0;
+  static uint32_t lastNtpSync = 0;
+  static uint32_t lastSecondUpdate = 0;
   static int highlighted = -1;
+  static int lastHour = -1;
+  static int lastMinute = -1;
+  static int lastSecond = -1;
+  static int localHour = 0;
+  static int localMinute = 0;
+  static int localSecond = 0;
 
-  if (millis() - lastTick >= 5)
-  {
-    lv_tick_inc(5);
-    lastTick = millis();
-  }
+  uint32_t now = millis();
+  lv_tick_inc(now - lastTick);
+  lastTick = now;
 
   lv_timer_handler();
 
-  if (millis() - lastUpdate >= 1000)
+  if (millis() - lastNtpSync >= 300000 || lastNtpSync == 0)
   {
     timeClient.update();
+    localHour = timeClient.getHours();
+    localMinute = timeClient.getMinutes();
+    localSecond = timeClient.getSeconds();
+    lastNtpSync = millis();
+    lastSecondUpdate = millis();
+  }
 
-    lv_label_set_text_fmt(label_time, "%02d:%02d",
-                          timeClient.getHours(),
-                          timeClient.getMinutes());
+  if (millis() - lastSecondUpdate >= 1000)
+  {
+    localSecond++;
+    if (localSecond >= 60)
+    {
+      localSecond = 0;
+      localMinute++;
+      if (localMinute >= 60)
+      {
+        localMinute = 0;
+        localHour++;
+        if (localHour >= 24)
+        {
+          localHour = 0;
+        }
+      }
+    }
+    lastSecondUpdate = millis();
+  }
+
+  if (millis() - lastUpdate >= 1000)
+  {
+     int today = timeClient.getDay();
+    if (today != currentDay)
+    {
+      currentDay = today;
+      setup_lvgl_ui(currentDay);
+    }
+    if (localHour != lastHour || localMinute != lastMinute)
+    {
+      static char timeStr[6];
+      snprintf(timeStr, sizeof(timeStr), "%02d:%02d", localHour, localMinute);
+      lv_label_set_text(label_time, timeStr);
+      lastHour = localHour;
+      lastMinute = localMinute;
+    }
 
     int p = getCurrentPeriod();
     if (p != highlighted)
     {
-      for (int i = 0; i < 9; i++)
+      if (highlighted >= 0 && highlighted < 9)
       {
-        lv_obj_set_style_bg_color(
-            periodBoxes[i],
-            (i == p) ? lv_color_hex(0x99CCFF) : lv_color_hex(0xFFFFFF),
-            LV_PART_MAIN);
-
-        lv_obj_set_style_bg_opa(
-          periodBoxes[i],
-          LV_OPA_COVER,
-          LV_PART_MAIN);
-
-        lv_obj_invalidate(periodBoxes[i]);
+        lv_obj_set_style_bg_color(periodBoxes[highlighted], 
+                                  lv_color_hex(0xFFFFFF), 
+                                  LV_PART_MAIN);
       }
+      
+      if (p >= 0 && p < 9)
+      {
+        lv_obj_set_style_bg_color(periodBoxes[p], 
+                                  lv_color_hex(0x99CCFF), 
+                                  LV_PART_MAIN);
+      }
+      
       highlighted = p;
     }
 
