@@ -52,8 +52,8 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
 }
 
 // ===================== WiFi & NTP =====================
-const char *ssid = "tlechonrad";
-const char *password = "tlechonrad888";
+const char *ssid = "";
+const char *password = "";
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 7 * 3600, 60000);
