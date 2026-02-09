@@ -159,7 +159,7 @@ void setup_lvgl_ui(int day)
 
   lv_obj_t *header = lv_label_create(scr);
   lv_obj_add_style(header, &thai_style, LV_PART_MAIN);
-  lv_label_set_text_fmt(header, "ตารางเรียน %s ห้อง xxx", thaiDays[day]);
+  lv_label_set_text_fmt(header, "ตารางเรียน %s", thaiDays[day]);
   lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 10);
 
   label_time = lv_label_create(scr);
